@@ -3,6 +3,13 @@ const app = express();
 const cors = require("cors"); // Add this line
 const port = process.env.PORT || 3001;
 
+app.use(express.static(path.join(__dirname, "client/build")));
+
+app.get("/", (req, res) => {
+  // Serve your React app's HTML file or render a specific template
+  res.sendFile(path.join(__dirname, "client/build/index.html"));
+});
+
 console.log("Starting server...");
 // Rest of your server code...
 
