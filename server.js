@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
 const cors = require("cors"); // Add this line
-const port = 3001;
+const port = process.env.PORT || 3001;
 
 console.log("Starting server...");
 // Rest of your server code...
