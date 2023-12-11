@@ -2,6 +2,25 @@ const { createClient: createSupabaseClient } = require("@supabase/supabase-js");
 const { exec } = require("child_process");
 const { createClient: createDeepgramClient } = require("@deepgram/sdk");
 const path = require("path");
+const fs = require("fs");
+
+const { Storage } = require("@google-cloud/storage");
+
+// Replace with the path to your downloaded JSON key file
+const keyFilename = "./audio-extraction-407220-a6a2475a0717";
+
+// Initialize Google Cloud Storage client
+const storage = new Storage({ keyFilename });
+
+// Your Google Cloud Storage bucket name
+const bucketName = "audio-extraction";
+
+const uploadToGoogleCloud = async (filePath, filename) => {
+  await storage.bucket(bucketName).upload(filePath, {
+    destination: filename,
+  });
+  return `gs://${bucketName}/${filename}`;
+};
 
 const supabaseUrl = "https://huzelhrvjaqhqldtnavm.supabase.co";
 const supabaseAnonKey =
@@ -149,28 +168,40 @@ const downloadAndConvertVideos = async (videos) => {
     try {
       await new Promise((resolve, reject) => {
         const filename = `${downloadCounter++}.mp4`; // Incremental filename
-        const filepath = `./downloads/${filename}`;
+        const localFilePath = `../downloads/${filename}`; // Local file path for download
+
         exec(
-          `yt-dlp -o "${filepath}" ${videoUrl}`,
+          `yt-dlp -o "${localFilePath}" ${videoUrl}`,
           async (err, stdout, stderr) => {
             if (err) {
               console.error("Error in downloading video:", err);
               reject(err);
             } else {
-              await updateVideoPathInDatabase(video.id, filepath);
+              // Upload to Google Cloud Storage
+              const gcsPath = await uploadToGoogleCloud(
+                localFilePath,
+                filename
+              );
+
+              // Update the database with the Google Cloud Storage URL/path
+              await updateVideoPathInDatabase(video.id, gcsPath);
+
               setTimeout(async () => {
                 try {
-                  const absolutePath = path.resolve(__dirname, filepath);
+                  // Transcribe the video if needed, using the local file
                   const transcriptionResult = await transcribeVideo(
-                    absolutePath
+                    localFilePath
                   );
                   console.log(
                     `Transcription completed for video ID: ${video.id}`
                   );
+
+                  // Store transcription results
                   await storeTranscriptionResults(
                     video.id,
                     transcriptionResult
                   );
+
                   resolve();
                 } catch (error) {
                   console.error(

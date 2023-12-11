@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "audio-extraction-407220",
+  "private_key_id": "a6a2475a0717c20d45a0c43767dbac429214ff1f",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCggdtJp2GK6kxl\nUb2mplIo+f37JlhGHeiOftvtL+tDzr97V6ldod2pVpQ3dsfCu27OYOr1DT12wBjG\ntjvj748k9DhvOLii/+W5mZ7KezdYgfZsLM+TZ2tqiUdHSiUIOBW3+OVRssIPvBvw\n3p7e/QxuebjV6fsMgI2z8o/FTUTBQ+/gYbQlPx4nHOhsFLaoCZ+wTtJzT+Kp9/mL\nSWIn8x3iy/lJPd1xtGdEKbhkpJokoOK60RU1SQXOE9cr6cE00WLyD99PMoneRoss\nqJphSJc/mQ0dMhHwmY28DWStWry1oWnFOWPGXT4Ds91UMDz9YwR98fpoEl/FdCob\nIYj2slGVAgMBAAECggEAKzBV878swYbjEJ5KlEWLtQfznflG5nMUyQb8oZlzyjaf\nEo7XfWDZNsAbuMLm5JCvs6ujfVXXNJVi9VFC00X6M/zdFJxkHkQSKftanWxDS7cI\nujnijuzUnAGdYuLiDRCeU3cPKYkaq8Y3lHwqrqDTkASDxlej3EzZFFMP+YydlA0I\n6dh2R3QWphyX1glIEvrWqFcO9oHFGHhK6rw7YdA6Mh7E/UbSfvkIPXlPR23nA9I3\nlM5cVAvZZsbvVFiklrXEG1R9Z2q5YAzpr1GjSdJUClNaulGNVWQyq/dKVceEpXxj\nLzWvG0VsKQ7BmdBMqfGXHKn4KGE+OI9aNkYqo3JhzwKBgQDZiufmBxTlRVw6NN4j\nAjPba+VoBv0lIXJUFqVYxFq58v3q0vTRLM12dzuvJ9pcg6MvzztzvKZ8zwPQAz/G\nwG2tOuc2OfJ10ZTvLA194qi/wgALW8ayvBwdrcoLt/2U1rvNZIM83fKUdGtvgLpo\nvkAkXUJzlnrvrQR0KZ8zjMK3uwKBgQC84cM69dL5OqpvGeT3xIostuWeZnoLLIlm\njZYIiCl5HodDRFekDB5Tv48XW+lsjx/dt01oH4jEqqfpFw4lhX4clN5HfJDgLSZN\nBO8+NgBcKp67qF+gHIHodRKwfNiNIkqljRWrU0h5zmsmv/GQpuZpUR7Uv4bOo+hI\n8qwX0uS+7wKBgGXFul+/CGOKY29HtHSkXyZT/+r++gcY8qesQIaatecwauIk9yu0\nzhqSBXYYKuwFGZ8QUDwBEdJp9tql6nxNIgJdADY6PdgoyIhsD5PJKjErzWGC+h48\nKtsnptJ8rUGohAu+7jbXjtks7eYoTw0ZlGBu0NvKlpDyXJcLsdMoEyBpAoGBAJvZ\nvPmddONo4NCjkSZP6aNTlsvIytMFgKo6EZ4gm/fwlLOQZLBbv3pjCXLAyC5nOmf7\no8dSncuI9NuDxox3RcPXokFiKziOiJfshmvSqyFhmXBGUgEPBLIGR9GQci6iKO3J\nKCQhqB+5jvh+UJiG3n/wC3yIPHetDzGB6zYNMenJAoGBAL/u+stZSsL702upARvp\nbpBfl5uiFKBbIf6m2NvhvG6VKnhk+mt6+syHZdUlXar8REf31CBVBfbf6262/wtL\n4JPyJRFrSGACMTWsvVWUjDGRJuoWSKPzl5/WN2ftGLZ6urlovDNLhTDvWWEDauKD\nuW7r1y7IocPxpJRbN7bCWmU2\n-----END PRIVATE KEY-----\n",
+  "client_email": "audiomonitor@audio-extraction-407220.iam.gserviceaccount.com",
+  "client_id": "118385608203646492246",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/audiomonitor%40audio-extraction-407220.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
