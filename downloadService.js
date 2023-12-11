@@ -2,7 +2,7 @@ const { createClient: createSupabaseClient } = require("@supabase/supabase-js");
 const { exec } = require("child_process");
 const { createClient: createDeepgramClient } = require("@deepgram/sdk");
 const path = require("path");
-const fs = require("fs");
+// const fs = require("fs");
 
 const { Storage } = require("@google-cloud/storage");
 
