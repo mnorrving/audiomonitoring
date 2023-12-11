@@ -10,15 +10,17 @@ function ChannelManager() {
   };
 
   const handleAddChannel = async () => {
-    // Function to handle adding a new channel
     await addChannel(channelId);
   };
 
   const handleDownloadVideos = async () => {
-    const response = await fetch("http://localhost:3001/downloadVideos", {
-      method: "POST",
-      // Any additional options like headers, body, etc.
-    });
+    const response = await fetch(
+      `${process.env.REACT_APP_API_BASE_URL}/downloadVideos`,
+      {
+        method: "POST",
+        // Any additional options like headers, body, etc.
+      }
+    );
 
     // Handle the response
   };
@@ -37,7 +39,6 @@ function ChannelManager() {
   };
 
   const transformApiResponseToDbFormat = (apiResponse) => {
-    // Assuming the first item is representative for channel info
     const firstItem = apiResponse.items[0];
 
     const channelData = {
@@ -53,14 +54,16 @@ function ChannelManager() {
 
   const addChannel = async (channelId) => {
     try {
-      // Fetch channel data from your backend
-      const response = await fetch("http://localhost:3001/api/fetchChannel", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ channelId }),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_BASE_URL}/api/fetchChannel`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ channelId }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error(
@@ -72,7 +75,6 @@ function ChannelManager() {
       const channelData = transformApiResponseToDbFormat(apiResponse);
       const videoData = transformVideoData(apiResponse.items);
 
-      // Post the processed channel data to the Supabase database
       const { data: channelDataResult, error: channelError } = await supabase
         .from("yt-channels")
         .insert([channelData]);
@@ -82,7 +84,6 @@ function ChannelManager() {
         return;
       }
 
-      // Post the processed video data to the Supabase database
       const { data: videoDataResult, error: videoError } = await supabase
         .from("yt-videos")
         .insert(videoData);
@@ -108,25 +109,8 @@ function ChannelManager() {
         placeholder="Enter YouTube Channel ID"
       />
       <button onClick={handleAddChannel}>Add</button>
-      <button onClick={handleDownloadVideos}>Download Videos</button>;
-      <table>
-        <thead>
-          <tr>
-            <th>Channel ID</th>
-            <th>Channel Name</th>
-            {/* Add other relevant headers */}
-          </tr>
-        </thead>
-        <tbody>
-          {channels.map((channel) => (
-            <tr key={channel.id}>
-              <td>{channel.id}</td>
-              <td>{channel.name}</td>
-              {/* Render other channel details */}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <button onClick={handleDownloadVideos}>Download Videos</button>
+      {/* Rest of your component */}
     </div>
   );
 }
