@@ -2,6 +2,8 @@ const { createClient: createSupabaseClient } = require("@supabase/supabase-js");
 const { exec } = require("child_process");
 const { createClient: createDeepgramClient } = require("@deepgram/sdk");
 const path = require("path");
+const { YtDlpWrap } = require("yt-dlp-wrap");
+const ytDlp = new YtDlpWrap();
 // const fs = require("fs");
 
 const { Storage } = require("@google-cloud/storage");
@@ -160,61 +162,33 @@ const fetchVideosForConversion = async () => {
   console.log("videos", videos);
 };
 
+const downloadVideoWithYtDlpWrap = async (videoUrl, localFilePath) => {
+  await ytDlp.exec(["-o", localFilePath, videoUrl]);
+};
+
 let downloadCounter = 1;
 
 const downloadAndConvertVideos = async (videos) => {
   for (const video of videos) {
     const videoUrl = `https://www.youtube.com/watch?v=${video.VideoId}`;
     try {
-      await new Promise((resolve, reject) => {
-        const filename = `${downloadCounter++}.mp4`; // Incremental filename
-        const localFilePath = `../downloads/${filename}`; // Local file path for download
+      const filename = `${downloadCounter++}.mp4`; // Incremental filename
+      const localFilePath = path.join(__dirname, "..", "downloads", filename); // Local file path for download
 
-        exec(
-          `yt-dlp -o "${localFilePath}" ${videoUrl}`,
-          async (err, stdout, stderr) => {
-            if (err) {
-              console.error("Error in downloading video:", err);
-              reject(err);
-            } else {
-              // Upload to Google Cloud Storage
-              const gcsPath = await uploadToGoogleCloud(
-                localFilePath,
-                filename
-              );
+      await downloadVideoWithYtDlpWrap(videoUrl, localFilePath);
 
-              // Update the database with the Google Cloud Storage URL/path
-              await updateVideoPathInDatabase(video.id, gcsPath);
+      // Upload to Google Cloud Storage
+      const gcsPath = await uploadToGoogleCloud(localFilePath, filename);
 
-              setTimeout(async () => {
-                try {
-                  // Transcribe the video if needed, using the local file
-                  const transcriptionResult = await transcribeVideo(
-                    localFilePath
-                  );
-                  console.log(
-                    `Transcription completed for video ID: ${video.id}`
-                  );
+      // Update the database with the Google Cloud Storage URL/path
+      await updateVideoPathInDatabase(video.id, gcsPath);
 
-                  // Store transcription results
-                  await storeTranscriptionResults(
-                    video.id,
-                    transcriptionResult
-                  );
+      // Transcribe the video if needed, using the local file
+      const transcriptionResult = await transcribeVideo(localFilePath);
+      console.log(`Transcription completed for video ID: ${video.id}`);
 
-                  resolve();
-                } catch (error) {
-                  console.error(
-                    `Error processing transcription for video ID: ${video.id}`,
-                    error
-                  );
-                  reject(error);
-                }
-              }, 5000); // Delay to ensure file write completion
-            }
-          }
-        );
-      });
+      // Store transcription results
+      await storeTranscriptionResults(video.id, transcriptionResult);
     } catch (error) {
       console.error("Error processing video:", videoUrl, error);
     }
