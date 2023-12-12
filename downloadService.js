@@ -2,7 +2,7 @@ const { createClient: createSupabaseClient } = require("@supabase/supabase-js");
 const { exec } = require("child_process");
 const { createClient: createDeepgramClient } = require("@deepgram/sdk");
 const path = require("path");
-const { YtDlpWrap } = require("yt-dlp-wrap");
+const YtDlpWrap = require("yt-dlp-wrap").default;
 const ytDlp = new YtDlpWrap();
 // const fs = require("fs");
 
