@@ -14,13 +14,12 @@ function ChannelManager() {
   };
 
   const handleDownloadVideos = async () => {
-    const response = await fetch(
-      `${process.env.REACT_APP_API_BASE_URL}/downloadVideos`,
-      {
-        method: "POST",
-        // Any additional options like headers, body, etc.
-      }
-    );
+    const apiUrl = `${process.env.REACT_APP_API_BASE_URL}/downloadVideos`;
+    console.log("API URL:", apiUrl); // Add this line for debugging
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      // Any additional options like headers, body, etc.
+    });
 
     // Handle the response
   };
