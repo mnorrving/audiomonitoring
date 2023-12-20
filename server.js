@@ -43,6 +43,8 @@ app.post("/api/fetchChannel", async (req, res) => {
 });
 
 app.post("/downloadVideos", async (req, res) => {
+  console.log("Received request to download videos");
+
   try {
     const videosToDownload = await fetchVideosForConversion();
     await downloadAndConvertVideos(videosToDownload);
@@ -54,7 +56,9 @@ app.post("/downloadVideos", async (req, res) => {
 });
 
 function formatTimestamp(timestamp) {
-  const totalSeconds = Math.round(timestamp); // Round to nearest second
+  // Subtract 2 seconds and ensure it doesn't go below zero
+  const adjustedTimestamp = Math.max(0, timestamp - 2);
+  const totalSeconds = Math.round(adjustedTimestamp); // Round to nearest second
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
@@ -68,15 +72,31 @@ function formatTimestamp(timestamp) {
 }
 
 function extractExcerpt(transcript, searchTerm) {
-  const words = transcript.split(/\s+/); // Split transcript into words
-  const index = words.findIndex((word) => word.includes(searchTerm));
+  // Convert both transcript and search term to lowercase for case-insensitive comparison
+  const lowerCaseTranscript = transcript.toLowerCase();
+  const lowerCaseSearchTerm = searchTerm.toLowerCase();
 
-  if (index === -1) return "Search term not found in transcript";
+  // Regular expression to find the search term with word boundaries
+  const regex = new RegExp(`\\b${lowerCaseSearchTerm}\\b`);
 
-  const start = Math.max(0, index - 10); // Ensure start is not negative
-  const end = Math.min(words.length, index + 11); // Ensure end does not exceed array length
+  const match = lowerCaseTranscript.match(regex);
+  if (!match) return "Search term not found in transcript";
 
-  return words.slice(start, end).join(" ");
+  // Find the position of the match in the transcript
+  const matchIndex = match.index;
+
+  // Define the number of characters to include before and after the search term
+  const excerptLength = 100; // Adjust this number based on how long you want the excerpt to be
+
+  // Calculate start and end positions for the excerpt
+  const start = Math.max(0, matchIndex - excerptLength / 2);
+  const end = Math.min(
+    lowerCaseTranscript.length,
+    matchIndex + excerptLength / 2
+  );
+
+  // Extract and return the excerpt
+  return transcript.substring(start, end);
 }
 
 app.get("/api/search", async (req, res) => {
@@ -92,6 +112,7 @@ app.get("/api/search", async (req, res) => {
       yt."Description",
       yt."PublishedAt",
       yt."ThumbnailUrl",
+      yt."ChannelName",
       yt."Title",
       yt."VideoURL",
       trans.id AS trans_id,
@@ -115,18 +136,22 @@ app.get("/api/search", async (req, res) => {
     // Execute the query
     const { rows } = await pool.query(query, [searchTerm]);
     console.log("Query Results:", rows);
+    // console.log(`Row ${index}:`, row);
+    // console.log(`Row ${index} VideoId:`, row.yt_videoId);
+    // });
 
     // Process and send the response
     const processedData = rows.map((item) => {
       return {
         title: item.Title,
+        channelName: item.ChannelName,
         publishedAt: item.PublishedAt,
         thumbnailUrl: item.ThumbnailUrl,
-        videoId: item.yt_videoId,
+        videoId: item.yt_videoid,
         channelId: item.ChannelId,
         matchedWordDetails: item.word_obj,
         youtubeLink: `https://www.youtube.com/watch?v=${
-          item.yt_videoId
+          item.yt_videoid
         }&t=${formatTimestamp(item.word_obj.start)}`,
         transcriptExcerpt: extractExcerpt(item.Transcript, searchTerm),
         description: item.Description,
@@ -134,7 +159,7 @@ app.get("/api/search", async (req, res) => {
       };
     });
 
-    console.log("Processed Data:", processedData);
+    // console.log("Processed Data:", processedData);
     res.json(processedData);
   } catch (error) {
     console.error("Error executing search query:", error);

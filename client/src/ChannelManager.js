@@ -72,7 +72,7 @@ function ChannelManager() {
 
       const apiResponse = await response.json();
       const channelData = transformApiResponseToDbFormat(apiResponse);
-      const videoData = transformVideoData(apiResponse.items);
+      let videoData = transformVideoData(apiResponse.items);
 
       const { data: channelDataResult, error: channelError } = await supabase
         .from("yt-channels")
@@ -82,6 +82,11 @@ function ChannelManager() {
         console.error("Error adding channel to Supabase:", channelError);
         return;
       }
+
+      videoData = videoData.map((video) => ({
+        ...video,
+        ChannelName: channelData.ChannelTitle, // Assuming 'ChannelTitle' is the name of the channel
+      }));
 
       const { data: videoDataResult, error: videoError } = await supabase
         .from("yt-videos")

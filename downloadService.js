@@ -2,27 +2,7 @@ const { createClient: createSupabaseClient } = require("@supabase/supabase-js");
 const { exec } = require("child_process");
 const { createClient: createDeepgramClient } = require("@deepgram/sdk");
 const path = require("path");
-const YtDlpWrap = require("yt-dlp-wrap").default;
-const ytDlp = new YtDlpWrap();
-// const fs = require("fs");
-
-const { Storage } = require("@google-cloud/storage");
-
-// Replace with the path to your downloaded JSON key file
-const keyFilename = "./audio-extraction-407220-a6a2475a0717";
-
-// Initialize Google Cloud Storage client
-const storage = new Storage({ keyFilename });
-
-// Your Google Cloud Storage bucket name
-const bucketName = "audio-extraction";
-
-const uploadToGoogleCloud = async (filePath, filename) => {
-  await storage.bucket(bucketName).upload(filePath, {
-    destination: filename,
-  });
-  return `gs://${bucketName}/${filename}`;
-};
+const { spawn } = require("child_process");
 
 const supabaseUrl = "https://huzelhrvjaqhqldtnavm.supabase.co";
 const supabaseAnonKey =
@@ -45,7 +25,10 @@ const updateVideoPathInDatabase = async (videoId, videoPath) => {
   try {
     const { data, error } = await supabase
       .from("yt-videos")
-      .update({ VideoURL: videoPath })
+      .update({
+        VideoURL: videoPath,
+        Processed: true, // Update the Processed field to true
+      })
       .match({ id: videoId });
 
     if (error) {
@@ -82,9 +65,15 @@ const storeTranscriptionResults = async (videoId, deepgramResponse) => {
     const confidence = transcription.confidence || 0;
     const created = deepgramResponse.metadata.created || new Date();
     const duration = deepgramResponse.metadata.duration || 0;
-    const words = transcription.words
-      ? JSON.stringify(transcription.words)
-      : "[]";
+
+    // Reformat each word object to ensure 'end' appears first
+    const reformattedWords = transcription.words.map((word) => ({
+      end: word.end,
+      word: word.word,
+      start: word.start,
+      confidence: word.confidence,
+      punctuated_word: word.punctuated_word,
+    }));
 
     console.log("Storing transcription results for video ID:", videoId);
     console.log("Transcript data:", {
@@ -93,7 +82,7 @@ const storeTranscriptionResults = async (videoId, deepgramResponse) => {
       Confidence: confidence,
       Created: new Date(created),
       Duration: duration,
-      Words: words,
+      Words: reformattedWords, // Use reformattedWords here
     });
 
     const { data, error } = await supabase.from("transcriptions").insert([
@@ -102,7 +91,7 @@ const storeTranscriptionResults = async (videoId, deepgramResponse) => {
         Transcript: transcript,
         Confidence: confidence,
         Duration: duration,
-        Words: words,
+        Words: reformattedWords, // Insert the actual array directly
       },
     ]);
 
@@ -125,74 +114,131 @@ const transcribeVideo = async (filePath) => {
 
   const deepgram = createDeepgramClient(deepgramApiKey);
 
-  try {
-    const fileBuffer = fs.readFileSync(filePath);
+  console.log("Requesting transcript...");
+  console.log("Your file may take up to a couple minutes to process.");
 
-    console.log("Sending file to Deepgram for transcription:", filePath);
-    const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
-      fileBuffer,
-      { punctuate: true, model: "enhanced", language: "sv" } // Adjust options as needed
-    );
+  const maxRetries = 3; // Maximum number of retries
+  let currentAttempt = 0;
 
-    if (error) {
-      console.error("Error during transcription:", error);
-      throw error;
+  while (currentAttempt < maxRetries) {
+    try {
+      const fileBuffer = fs.readFileSync(filePath);
+      console.log(
+        `Attempt ${
+          currentAttempt + 1
+        }: Sending file to Deepgram for transcription:`,
+        filePath
+      );
+
+      const { result, error } =
+        await deepgram.listen.prerecorded.transcribeFile(
+          fileBuffer,
+          { punctuate: true, model: "enhanced", language: "sv" } // Adjust options as needed
+        );
+
+      if (error) {
+        console.error("Error during transcription:", error);
+        throw error;
+      }
+
+      console.log("Transcription result:", result);
+      return result;
+    } catch (error) {
+      console.error(
+        `Error in transcribeVideo function on attempt ${currentAttempt + 1}:`,
+        error
+      );
+      currentAttempt++;
+
+      if (currentAttempt >= maxRetries) {
+        console.error("Maximum retry attempts reached.");
+        throw error;
+      }
+
+      // Optionally, add a delay before retrying
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // 2-second delay
     }
-
-    console.log("Transcription result:", result);
-    return result;
-  } catch (error) {
-    console.error("Error in transcribeVideo function:", error);
-    throw error;
   }
 };
 
 const fetchVideosForConversion = async () => {
+  console.log("Fetching videos for conversion...");
+
   let { data: videos, error } = await supabase
     .from("yt-videos")
-    .select("*") // Select all fields, or specify the fields you need
-    .is("MP3URL", null);
+    .select("*")
+    .is("Processed", null);
 
   if (error) {
     console.error("Error fetching videos for conversion:", error);
     return [];
   }
 
-  return videos; // This will be an array of videos with MP3URL set to NULL
-  console.log("videos", videos);
+  console.log(`Fetched ${videos.length} videos for conversion.`);
+  return videos;
 };
 
-const downloadVideoWithYtDlpWrap = async (videoUrl, localFilePath) => {
-  await ytDlp.exec(["-o", localFilePath, videoUrl]);
+const downloadVideoWithYtDlp = (videoUrl, localFilePath) => {
+  return new Promise((resolve, reject) => {
+    // Use the -f option with the desired audio-only format code
+    const ytDlpProcess = spawn("yt-dlp", [
+      "-f",
+      "140",
+      videoUrl,
+      "-o",
+      localFilePath,
+    ]);
+
+    ytDlpProcess.on("close", (code) => {
+      if (code !== 0) {
+        console.error(`yt-dlp exited with code ${code}`);
+        reject(`yt-dlp exited with code ${code}`);
+      } else {
+        console.log("Download complete:", localFilePath);
+        resolve(localFilePath);
+      }
+    });
+
+    ytDlpProcess.stderr.on("data", (data) => {
+      console.error(`yt-dlp stderr: ${data}`);
+    });
+  });
 };
 
 let downloadCounter = 1;
 
 const downloadAndConvertVideos = async (videos) => {
+  console.log(`Starting to process ${videos.length} videos...`);
+
   for (const video of videos) {
-    const videoUrl = `https://www.youtube.com/watch?v=${video.VideoId}`;
+    console.log(`Processing video ID: ${video.VideoId}`);
+
     try {
-      const filename = `${downloadCounter++}.mp4`; // Incremental filename
-      const localFilePath = path.join(__dirname, "..", "downloads", filename); // Local file path for download
+      const videoUrl = `https://www.youtube.com/watch?v=${video.VideoId}`;
+      const filename = `${downloadCounter++}.mp3`; // Changed to .mp3
+      const audioFilePath = path.join(__dirname, "..", "downloads", filename);
 
-      await downloadVideoWithYtDlpWrap(videoUrl, localFilePath);
+      console.log(`Downloading audio from URL: ${videoUrl}`);
+      await downloadVideoWithYtDlp(videoUrl, audioFilePath);
+      console.log(`Audio downloaded to: ${audioFilePath}`);
 
-      // Upload to Google Cloud Storage
-      const gcsPath = await uploadToGoogleCloud(localFilePath, filename);
+      await updateVideoPathInDatabase(video.id, audioFilePath);
 
-      // Update the database with the Google Cloud Storage URL/path
-      await updateVideoPathInDatabase(video.id, gcsPath);
-
-      // Transcribe the video if needed, using the local file
-      const transcriptionResult = await transcribeVideo(localFilePath);
+      console.log(`Transcribing audio from file: ${audioFilePath}`);
+      const transcriptionResult = await transcribeVideo(audioFilePath);
       console.log(`Transcription completed for video ID: ${video.id}`);
 
-      // Store transcription results
       await storeTranscriptionResults(video.id, transcriptionResult);
+
+      fs.unlinkSync(audioFilePath); // Only deleting the audio file
+      console.log(`Deleted local file: ${audioFilePath}`);
     } catch (error) {
-      console.error("Error processing video:", videoUrl, error);
+      console.error("Error processing video ID: ", video.VideoId, error);
+      // Optionally, delete the file in case of an error
     }
   }
+
+  console.log("Finished processing videos.");
 };
 
 module.exports = {
