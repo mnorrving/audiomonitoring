@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { supabase } from "./supabaseClient";
+import PodcastManager from "./PodcastManager";
 
 function ChannelManager() {
   const [channelId, setChannelId] = useState("");
-  const [channels, setChannels] = useState([]);
+  // const [channels, setChannels] = useState([]);
 
   const handleInputChange = (event) => {
     setChannelId(event.target.value);
@@ -114,7 +115,7 @@ function ChannelManager() {
       />
       <button onClick={handleAddChannel}>Add</button>
       <button onClick={handleDownloadVideos}>Download Videos</button>
-      {/* Rest of your component */}
+      <PodcastManager />
     </div>
   );
 }
